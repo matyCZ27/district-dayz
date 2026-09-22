@@ -107,15 +107,24 @@ export async function onRequest(context) {
     `Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`;
 
   // 6. Přesměrování na profil
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: "/Pages/profile.html",
-      "Set-Cookie":
-        sessionCookie +
-        ", discord_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"
-    }
-  });
+ const headers = new Headers();
+
+headers.set("Location", "/Pages/profile.html");
+
+headers.append(
+  "Set-Cookie",
+  sessionCookie
+);
+
+headers.append(
+  "Set-Cookie",
+  "discord_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"
+);
+
+return new Response(null, {
+  status: 302,
+  headers
+}); 
 }
 
 
