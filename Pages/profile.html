@@ -5,6 +5,74 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>District — Profil</title>
 <link rel="stylesheet" href="../style.css">
+
+<style>
+.profile-card {
+  max-width: 760px;
+  margin: 40px auto;
+  padding: 35px;
+  text-align: center;
+  background: rgba(10,14,18,.88);
+  border: 1px solid rgba(155,211,91,.25);
+  border-radius: 18px;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid #9bd35b;
+  object-fit: cover;
+  margin-bottom: 20px;
+}
+
+.profile-name {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.profile-id {
+  opacity: .55;
+  margin-top: 5px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.stat {
+  padding: 20px;
+  background: rgba(255,255,255,.04);
+  border-radius: 12px;
+}
+
+.stat strong {
+  display: block;
+  font-size: 26px;
+}
+
+.profile-extra {
+  margin-top: 20px;
+  padding: 20px;
+  background: rgba(255,255,255,.04);
+  border-radius: 12px;
+}
+
+.login-box {
+  max-width: 600px;
+  margin: 60px auto;
+  text-align: center;
+}
+
+@media (max-width:600px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
 </head>
 
 <body>
@@ -27,33 +95,131 @@
 
 <main>
 
-<section class="hero">
-  <div class="eyebrow">DISTRICT / PROFIL</div>
-  <h1>PROFIL</h1>
-  <p>Tvoje statistiky a nastavení hráče.</p>
-</section>
-
-<section class="grid">
-
-  <div class="card">
-    <h2>STATISTIKY</h2>
-    <p>Kills: —</p>
-    <p>Deaths: —</p>
-    <p>K/D: —</p>
-  </div>
-
-  <div class="card">
-    <h2>NASTAVENÍ</h2>
-    <p>Profil hráče bude možné upravovat po přihlášení.</p>
-  </div>
-
-</section>
-
-<br>
-
-<a href="../index.html">← Zpět na hlavní stránku</a>
+<div id="profile"></div>
 
 </main>
+
+<script>
+async function loadProfile() {
+
+  const container = document.getElementById("profile");
+
+  try {
+
+    const response = await fetch("/api/me", {
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    if (!data.loggedIn) {
+
+      container.innerHTML = `
+        <div class="login-box">
+          <div class="eyebrow">DISTRICT / PROFILE</div>
+          <h1>NEJSI PŘIHLÁŠENÝ</h1>
+          <p>Pro zobrazení profilu se nejdříve přihlas přes Discord.</p>
+
+          <br>
+
+          <a href="/api/auth/discord">
+            Přihlásit přes Discord
+          </a>
+
+          <br><br>
+
+          <a href="../index.html">
+            ← Zpět
+          </a>
+        </div>
+      `;
+
+      return;
+    }
+
+    const user = data.user;
+
+    container.innerHTML = `
+      <section class="profile-card">
+
+        <div class="eyebrow">DISTRICT / PROFILE</div>
+
+        <img
+          class="profile-avatar"
+          src="${escapeHtml(user.avatar)}"
+          alt="Discord avatar"
+        >
+
+        <div class="profile-name">
+          ${escapeHtml(user.global_name || user.username)}
+        </div>
+
+        <div class="profile-id">
+          Discord ID: ${escapeHtml(user.id)}
+        </div>
+
+        <div class="stats">
+
+          <div class="stat">
+            <strong>—</strong>
+            KILLS
+          </div>
+
+          <div class="stat">
+            <strong>—</strong>
+            DEATHS
+          </div>
+
+          <div class="stat">
+            <strong>—</strong>
+            K/D
+          </div>
+
+        </div>
+
+        <div class="profile-extra">
+          <p><strong>CLAN</strong></p>
+          <p>Bez klanu</p>
+
+          <p><strong>VIP</strong></p>
+          <p>Žádné</p>
+
+          <p><strong>DISTRICT COINS</strong></p>
+          <p>0</p>
+        </div>
+
+        <br>
+
+        <a href="../index.html">
+          ← Zpět na District
+        </a>
+
+      </section>
+    `;
+
+  } catch (error) {
+
+    container.innerHTML = `
+      <div class="login-box">
+        <h1>CHYBA</h1>
+        <p>Nepodařilo se načíst profil.</p>
+      </div>
+    `;
+
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+loadProfile();
+</script>
 
 </body>
 </html>
