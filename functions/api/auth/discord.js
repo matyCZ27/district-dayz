@@ -4,7 +4,7 @@ const REDIRECT_URI = "https://district-dgt.pages.dev/api/auth/discord";
 export async function onRequest(context) {
   const url = new URL(context.request.url);
 
-  // Přihlášení přes Discord
+  // 1. Zahájení Discord přihlášení
   if (!url.searchParams.has("code")) {
     const state = crypto.randomUUID();
 
@@ -26,22 +26,17 @@ export async function onRequest(context) {
     });
   }
 
+  // 2. Návrat z Discordu
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
-  const cookies = context.request.headers.get("Cookie") || "";
+  const cookies = getCookies(context.request);
 
-  const savedState = cookies
-    .split(";")
-    .map(x => x.trim())
-    .find(x => x.startsWith("discord_state="))
-    ?.split("=")[1];
-
-  if (!state || !savedState || state !== savedState) {
+  if (!state || !cookies.discord_state || state !== cookies.discord_state) {
     return new Response("Neplatné přihlášení.", { status: 403 });
   }
 
-  // Výměna autorizačního kódu za Discord token
+  // 3. Výměna code za Discord access token
   const tokenResponse = await fetch(
     "https://discord.com/api/oauth2/token",
     {
@@ -67,7 +62,7 @@ export async function onRequest(context) {
 
   const tokenData = await tokenResponse.json();
 
-  // Načtení Discord profilu
+  // 4. Načtení Discord uživatele
   const userResponse = await fetch(
     "https://discord.com/api/users/@me",
     {
@@ -86,147 +81,107 @@ export async function onRequest(context) {
 
   const user = await userResponse.json();
 
-  // Discord avatar
   const avatarUrl = user.avatar
     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256`
-    : `https://cdn.discordapp.com/embed/avatars/${Number(user.discriminator || 0) % 5}.png`;
+    : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
-  const safeName = escapeHtml(
-    user.global_name || user.username
+  // 5. Data uložená do session
+  const sessionData = {
+    id: user.id,
+    username: user.username,
+    global_name: user.global_name || user.username,
+    avatar: avatarUrl
+  };
+
+  const sessionPayload = base64url(
+    JSON.stringify(sessionData)
   );
 
-  return new Response(
-    `<!doctype html>
-<html lang="cs">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>District — Profil</title>
-<link rel="stylesheet" href="/style.css">
-<style>
-.profile-card {
-  max-width: 700px;
-  margin: 40px auto;
-  padding: 35px;
-  text-align: center;
-  border: 1px solid rgba(155,211,91,.25);
-  background: rgba(10,14,18,.85);
-  border-radius: 18px;
-}
+  const signature = await sign(
+    sessionPayload,
+    context.env.SESSION_SECRET
+  );
 
-.profile-avatar {
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  border: 3px solid #9bd35b;
-  margin-bottom: 20px;
-}
+  const sessionCookie =
+    `district_session=${sessionPayload}.${signature}; ` +
+    `Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`;
 
-.profile-name {
-  font-size: 30px;
-  font-weight: 700;
-}
-
-.profile-discord {
-  opacity: .65;
-  margin-top: 6px;
-}
-
-.profile-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 30px;
-}
-
-.stat {
-  padding: 18px;
-  background: rgba(255,255,255,.04);
-  border-radius: 12px;
-}
-
-.stat strong {
-  display: block;
-  font-size: 24px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="bg"></div>
-
-<header class="topbar">
-  <a class="brand" href="/">
-    DISTRICT
-    <span>DAYZ SERVER</span>
-  </a>
-</header>
-
-<main>
-
-<section class="profile-card">
-
-  <div class="eyebrow">DISTRICT / PROFILE</div>
-
-  <img
-    class="profile-avatar"
-    src="${avatarUrl}"
-    alt="Discord avatar"
-  >
-
-  <div class="profile-name">
-    ${safeName}
-  </div>
-
-  <div class="profile-discord">
-    Discord ID: ${user.id}
-  </div>
-
-  <div class="profile-stats">
-
-    <div class="stat">
-      <strong>—</strong>
-      KILLS
-    </div>
-
-    <div class="stat">
-      <strong>—</strong>
-      DEATHS
-    </div>
-
-    <div class="stat">
-      <strong>—</strong>
-      K/D
-    </div>
-
-  </div>
-
-  <br><br>
-
-  <a href="/">← Zpět na District</a>
-
-</section>
-
-</main>
-
-</body>
-</html>`,
-    {
-      headers: {
-        "Content-Type": "text/html; charset=UTF-8",
-        "Set-Cookie":
-          "discord_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"
-      }
+  // 6. Přesměrování na profil
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: "/Pages/profile.html",
+      "Set-Cookie":
+        sessionCookie +
+        ", discord_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"
     }
-  );
+  });
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+
+// -------------------------
+// Pomocné funkce
+// -------------------------
+
+function getCookies(request) {
+  const header = request.headers.get("Cookie") || "";
+
+  const cookies = {};
+
+  for (const part of header.split(";")) {
+    const [key, ...value] = part.trim().split("=");
+
+    if (key) {
+      cookies[key] = value.join("=");
+    }
+  }
+
+  return cookies;
+}
+
+
+function base64url(value) {
+  const bytes = new TextEncoder().encode(value);
+
+  let binary = "";
+
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+}
+
+
+async function sign(value, secret) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    {
+      name: "HMAC",
+      hash: "SHA-256"
+    },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(value)
+  );
+
+  let binary = "";
+
+  for (const byte of new Uint8Array(signature)) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 }
