@@ -1,41 +1,183 @@
 <!doctype html>
 <html lang="cs">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>District — Hráči</title>
-<link rel="stylesheet" href="../style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>District — Hráči</title>
+  <link rel="stylesheet" href="../style.css">
+
+  <style>
+    .players-box {
+      max-width: 1000px;
+      margin: 40px auto;
+    }
+
+    .player {
+      display: grid;
+      grid-template-columns: 50px 1fr 100px 100px 100px 150px;
+      gap: 15px;
+      align-items: center;
+      padding: 16px;
+      margin-bottom: 8px;
+      background: rgba(255,255,255,.04);
+      border-radius: 10px;
+    }
+
+    .rank {
+      font-weight: bold;
+      opacity: .6;
+    }
+
+    .player-name {
+      font-weight: bold;
+    }
+
+    .psn {
+      opacity: .65;
+      font-size: 13px;
+    }
+
+    .number {
+      text-align: center;
+    }
+
+    .clan {
+      text-align: center;
+    }
+
+    @media (max-width: 700px) {
+      .player {
+        grid-template-columns: 35px 1fr 70px 70px 70px;
+      }
+
+      .clan {
+        display: none;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="bg"></div>
-
-<header class="topbar">
-  <a class="brand" href="../index.html">
-    DISTRICT
-    <span>DAYZ SERVER</span>
-  </a>
-
-  <nav>
-    <a href="../index.html">⌂</a>
-    <a href="server.html">▤</a>
-    <a href="shop.html">🛒</a>
-    <a href="clans.html">◉</a>
-  </nav>
-</header>
-
 <main>
 
-<section class="hero">
-  <div class="eyebrow">DISTRICT / HRÁČI</div>
-  <h1>ONLINE HRÁČI</h1>
-  <p>Databáze hráčů bude doplněna.</p>
-</section>
+  <a href="../index.html" style="color:#9bd35b">
+    ← Zpět
+  </a>
 
-<a href="../index.html">← Zpět na hlavní stránku</a>
+  <section class="hero">
+    <div class="eyebrow">DISTRICT / PLAYERS</div>
+    <h1>HRÁČI</h1>
+    <p>Žebříček hráčů District serveru</p>
+  </section>
+
+  <section class="players-box">
+
+    <div id="players">
+      Načítám hráče...
+    </div>
+
+  </section>
 
 </main>
+
+<script>
+
+async function loadPlayers() {
+
+  const container = document.getElementById("players");
+
+  try {
+
+    const response = await fetch("/api/players");
+    const data = await response.json();
+
+    if (!data.success) {
+      container.innerHTML = "Nepodařilo se načíst hráče.";
+      return;
+    }
+
+    if (!data.players.length) {
+      container.innerHTML = "Zatím nejsou žádní hráči.";
+      return;
+    }
+
+    container.innerHTML = data.players.map((player, index) => {
+
+      const kills = Number(player.kills || 0);
+      const deaths = Number(player.deaths || 0);
+
+      const kd = deaths > 0
+        ? (kills / deaths).toFixed(2)
+        : kills.toFixed(2);
+
+      return `
+        <div class="player">
+
+          <div class="rank">
+            #${index + 1}
+          </div>
+
+          <div>
+            <div class="player-name">
+              ${escapeHtml(player.discord_username || "Neznámý hráč")}
+            </div>
+
+            <div class="psn">
+              PSN: ${escapeHtml(player.psn_username || "Nenastaveno")}
+            </div>
+          </div>
+
+          <div class="number">
+            <strong>${kills}</strong><br>
+            <small>KILLS</small>
+          </div>
+
+          <div class="number">
+            <strong>${deaths}</strong><br>
+            <small>DEATHS</small>
+          </div>
+
+          <div class="number">
+            <strong>${kd}</strong><br>
+            <small>K/D</small>
+          </div>
+
+          <div class="clan">
+            ${escapeHtml(player.clan || "Bez klanu")}
+          </div>
+
+        </div>
+      `;
+
+    }).join("");
+
+  } catch (error) {
+
+    console.error(error);
+
+    container.innerHTML =
+      "Nepodařilo se načíst hráče.";
+
+  }
+}
+
+
+function escapeHtml(value) {
+
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+}
+
+
+loadPlayers();
+
+</script>
 
 </body>
 </html>
