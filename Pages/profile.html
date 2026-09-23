@@ -101,97 +101,38 @@
 
 <script>
 async function loadProfile() {
-
   const container = document.getElementById("profile");
 
   try {
+    const response = await fetch("/api/profile", {
+      credentials: "include"
+    });
 
-  const response = await fetch("/api/profile", {
-  credentials: "include"
-});
+    const data = await response.json();
 
-const data = await response.json();
+    if (!data.loggedIn) {
+      container.innerHTML = `
+        <div class="login-box">
+          <div class="eyebrow">DISTRICT / PROFILE</div>
+          <h1>NEJSI PŘIHLÁŠENÝ</h1>
+          <p>Pro zobrazení profilu se nejdříve přihlas přes Discord.</p>
+          <br>
+          <a href="/api/auth/discord">Přihlásit přes Discord</a>
+        </div>
+      `;
+      return;
+    }
 
-if (!data.loggedIn) {
-  container.innerHTML = `
-    <div class="login-box">
-      <div class="eyebrow">DISTRICT / PROFILE</div>
-      <h1>NEJSI PŘIHLÁŠENÝ</h1>
-      <p>Pro zobrazení profilu se nejdříve přihlas přes Discord.</p>
-      <br>
-      <a href="/api/auth/discord">Přihlásit přes Discord</a>
-    </div>
-  `;
-  return;
-}
+    const player = data.player;
+    const discord = data.discord;
 
-const player = data.player;
-const discord = data.discord;
+    const kills = Number(player.kills || 0);
+    const deaths = Number(player.deaths || 0);
+    const coins = Number(player.coins || 0);
 
-const kd = player.deaths > 0
-  ? (player.kills / player.deaths).toFixed(2)
-  : player.kills.toFixed(2);
-
-container.innerHTML = `
-  <section class="profile-card">
-
-    <div class="eyebrow">DISTRICT / PROFILE</div>
-
-    <img
-      class="profile-avatar"
-      src="${escapeHtml(discord.avatar)}"
-      alt="Discord avatar"
-    >
-
-    <div class="profile-name">
-      ${escapeHtml(discord.global_name || discord.username)}
-    </div>
-
-    <div class="profile-id">
-      Discord ID: ${escapeHtml(discord.id)}
-    </div>
-
-    <div class="stats">
-
-      <div class="stat">
-        <strong>${player.kills}</strong>
-        KILLS
-      </div>
-
-      <div class="stat">
-        <strong>${player.deaths}</strong>
-        DEATHS
-      </div>
-
-      <div class="stat">
-        <strong>${kd}</strong>
-        K/D
-      </div>
-
-    </div>
-
-    <div class="profile-extra">
-
-      <p><strong>PSN</strong></p>
-      <p>${escapeHtml(player.psn_username || "Nenastaveno")}</p>
-
-      <p><strong>CLAN</strong></p>
-      <p>${escapeHtml(player.clan || "Bez klanu")}</p>
-
-      <p><strong>VIP</strong></p>
-      <p>${escapeHtml(player.vip || "None")}</p>
-
-      <p><strong>DISTRICT COINS</strong></p>
-      <p>${player.coins}</p>
-
-    </div>
-
-    <br>
-
-    <a href="../index.html">← Zpět na District</a>
-
-  </section>
-`;
+    const kd = deaths > 0
+      ? (kills / deaths).toFixed(2)
+      : kills.toFixed(2);
 
     container.innerHTML = `
       <section class="profile-card">
@@ -200,58 +141,62 @@ container.innerHTML = `
 
         <img
           class="profile-avatar"
-          src="${escapeHtml(user.avatar)}"
+          src="${escapeHtml(discord.avatar)}"
           alt="Discord avatar"
         >
 
         <div class="profile-name">
-          ${escapeHtml(user.global_name || user.username)}
+          ${escapeHtml(discord.global_name || discord.username)}
         </div>
 
         <div class="profile-id">
-          Discord ID: ${escapeHtml(user.id)}
+          Discord ID: ${escapeHtml(discord.id)}
         </div>
 
         <div class="stats">
 
           <div class="stat">
-            <strong>—</strong>
+            <strong>${kills}</strong>
             KILLS
           </div>
 
           <div class="stat">
-            <strong>—</strong>
+            <strong>${deaths}</strong>
             DEATHS
           </div>
 
           <div class="stat">
-            <strong>—</strong>
+            <strong>${kd}</strong>
             K/D
           </div>
 
         </div>
 
         <div class="profile-extra">
+
+          <p><strong>PSN</strong></p>
+          <p>${escapeHtml(player.psn_username || "Nenastaveno")}</p>
+
           <p><strong>CLAN</strong></p>
-          <p>Bez klanu</p>
+          <p>${escapeHtml(player.clan || "Bez klanu")}</p>
 
           <p><strong>VIP</strong></p>
-          <p>Žádné</p>
+          <p>${escapeHtml(player.vip || "None")}</p>
 
           <p><strong>DISTRICT COINS</strong></p>
-          <p>0</p>
+          <p>${coins}</p>
+
         </div>
 
         <br>
 
-        <a href="../index.html">
-          ← Zpět na District
-        </a>
+        <a href="../index.html">← Zpět na District</a>
 
       </section>
     `;
 
   } catch (error) {
+    console.error(error);
 
     container.innerHTML = `
       <div class="login-box">
@@ -259,17 +204,16 @@ container.innerHTML = `
         <p>Nepodařilo se načíst profil.</p>
       </div>
     `;
-
   }
 }
 
 function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 loadProfile();
