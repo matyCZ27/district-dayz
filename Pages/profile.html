@@ -174,19 +174,52 @@ async function loadProfile() {
 
         <div class="profile-extra">
 
-          <p><strong>PSN</strong></p>
-          <p>${escapeHtml(player.psn_username || "Nenastaveno")}</p>
+  <p><strong>PSN JMÉNO</strong></p>
 
-          <p><strong>CLAN</strong></p>
-          <p>${escapeHtml(player.clan || "Bez klanu")}</p>
+  <input
+    id="psnInput"
+    type="text"
+    maxlength="16"
+    value="${escapeHtml(player.psn_username || "")}"
+    placeholder="Tvoje PSN jméno"
+    style="
+      width:100%;
+      max-width:350px;
+      padding:12px;
+      border-radius:8px;
+      border:1px solid rgba(155,211,91,.3);
+      background:#111;
+      color:white;
+      margin:10px 0;
+    "
+  >
 
-          <p><strong>VIP</strong></p>
-          <p>${escapeHtml(player.vip || "None")}</p>
+  <button
+    id="savePsn"
+    style="
+      padding:12px 24px;
+      border:0;
+      border-radius:8px;
+      cursor:pointer;
+    "
+  >
+    ULOŽIT PSN
+  </button>
 
-          <p><strong>DISTRICT COINS</strong></p>
-          <p>${coins}</p>
+  <div id="psnMessage" style="margin-top:10px;"></div>
 
-        </div>
+  <hr style="margin:25px 0; opacity:.15">
+
+  <p><strong>CLAN</strong></p>
+  <p>${escapeHtml(player.clan || "Bez klanu")}</p>
+
+  <p><strong>VIP</strong></p>
+  <p>${escapeHtml(player.vip || "None")}</p>
+
+  <p><strong>DISTRICT COINS</strong></p>
+  <p>${coins}</p>
+
+</div>
 
         <br>
 
