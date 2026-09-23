@@ -106,38 +106,92 @@ async function loadProfile() {
 
   try {
 
-    const response = await fetch("/api/me", {
-      credentials: "include"
-    });
+  const response = await fetch("/api/profile", {
+  credentials: "include"
+});
 
-    const data = await response.json();
+const data = await response.json();
 
-    if (!data.loggedIn) {
+if (!data.loggedIn) {
+  container.innerHTML = `
+    <div class="login-box">
+      <div class="eyebrow">DISTRICT / PROFILE</div>
+      <h1>NEJSI PŘIHLÁŠENÝ</h1>
+      <p>Pro zobrazení profilu se nejdříve přihlas přes Discord.</p>
+      <br>
+      <a href="/api/auth/discord">Přihlásit přes Discord</a>
+    </div>
+  `;
+  return;
+}
 
-      container.innerHTML = `
-        <div class="login-box">
-          <div class="eyebrow">DISTRICT / PROFILE</div>
-          <h1>NEJSI PŘIHLÁŠENÝ</h1>
-          <p>Pro zobrazení profilu se nejdříve přihlas přes Discord.</p>
+const player = data.player;
+const discord = data.discord;
 
-          <br>
+const kd = player.deaths > 0
+  ? (player.kills / player.deaths).toFixed(2)
+  : player.kills.toFixed(2);
 
-          <a href="/api/auth/discord">
-            Přihlásit přes Discord
-          </a>
+container.innerHTML = `
+  <section class="profile-card">
 
-          <br><br>
+    <div class="eyebrow">DISTRICT / PROFILE</div>
 
-          <a href="../index.html">
-            ← Zpět
-          </a>
-        </div>
-      `;
+    <img
+      class="profile-avatar"
+      src="${escapeHtml(discord.avatar)}"
+      alt="Discord avatar"
+    >
 
-      return;
-    }
+    <div class="profile-name">
+      ${escapeHtml(discord.global_name || discord.username)}
+    </div>
 
-    const user = data.user;
+    <div class="profile-id">
+      Discord ID: ${escapeHtml(discord.id)}
+    </div>
+
+    <div class="stats">
+
+      <div class="stat">
+        <strong>${player.kills}</strong>
+        KILLS
+      </div>
+
+      <div class="stat">
+        <strong>${player.deaths}</strong>
+        DEATHS
+      </div>
+
+      <div class="stat">
+        <strong>${kd}</strong>
+        K/D
+      </div>
+
+    </div>
+
+    <div class="profile-extra">
+
+      <p><strong>PSN</strong></p>
+      <p>${escapeHtml(player.psn_username || "Nenastaveno")}</p>
+
+      <p><strong>CLAN</strong></p>
+      <p>${escapeHtml(player.clan || "Bez klanu")}</p>
+
+      <p><strong>VIP</strong></p>
+      <p>${escapeHtml(player.vip || "None")}</p>
+
+      <p><strong>DISTRICT COINS</strong></p>
+      <p>${player.coins}</p>
+
+    </div>
+
+    <br>
+
+    <a href="../index.html">← Zpět na District</a>
+
+  </section>
+`;
 
     container.innerHTML = `
       <section class="profile-card">
