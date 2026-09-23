@@ -174,52 +174,53 @@ async function loadProfile() {
 
         <div class="profile-extra">
 
-  <p><strong>PSN JMÉNO</strong></p>
+          <p><strong>PSN JMÉNO</strong></p>
 
-  <input
-    id="psnInput"
-    type="text"
-    maxlength="16"
-    value="${escapeHtml(player.psn_username || "")}"
-    placeholder="Tvoje PSN jméno"
-    style="
-      width:100%;
-      max-width:350px;
-      padding:12px;
-      border-radius:8px;
-      border:1px solid rgba(155,211,91,.3);
-      background:#111;
-      color:white;
-      margin:10px 0;
-    "
-  >
+          <input
+            id="psnInput"
+            type="text"
+            maxlength="16"
+            value="${escapeHtml(player.psn_username || "")}"
+            placeholder="Tvoje PSN jméno"
+            style="
+              width:100%;
+              max-width:350px;
+              padding:12px;
+              border-radius:8px;
+              border:1px solid rgba(155,211,91,.3);
+              background:#111;
+              color:white;
+              margin:10px 0;
+            "
+          >
 
-  <button
-    id="savePsn"
-    style="
-      padding:12px 24px;
-      border:0;
-      border-radius:8px;
-      cursor:pointer;
-    "
-  >
-    ULOŽIT PSN
-  </button>
+          <button
+            id="savePsn"
+            type="button"
+            style="
+              padding:12px 24px;
+              border:0;
+              border-radius:8px;
+              cursor:pointer;
+            "
+          >
+            ULOŽIT PSN
+          </button>
 
-  <div id="psnMessage" style="margin-top:10px;"></div>
+          <div id="psnMessage" style="margin-top:10px;"></div>
 
-  <hr style="margin:25px 0; opacity:.15">
+          <hr style="margin:25px 0; opacity:.15">
 
-  <p><strong>CLAN</strong></p>
-  <p>${escapeHtml(player.clan || "Bez klanu")}</p>
+          <p><strong>CLAN</strong></p>
+          <p>${escapeHtml(player.clan || "Bez klanu")}</p>
 
-  <p><strong>VIP</strong></p>
-  <p>${escapeHtml(player.vip || "None")}</p>
+          <p><strong>VIP</strong></p>
+          <p>${escapeHtml(player.vip || "None")}</p>
 
-  <p><strong>DISTRICT COINS</strong></p>
-  <p>${coins}</p>
+          <p><strong>DISTRICT COINS</strong></p>
+          <p>${coins}</p>
 
-</div>
+        </div>
 
         <br>
 
@@ -240,6 +241,7 @@ async function loadProfile() {
   }
 }
 
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -249,6 +251,63 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+
+/* ULOŽENÍ PSN */
+document.addEventListener("click", async (event) => {
+
+  if (event.target.id !== "savePsn") {
+    return;
+  }
+
+  const input = document.getElementById("psnInput");
+  const message = document.getElementById("psnMessage");
+
+  if (!input || !message) {
+    return;
+  }
+
+  const psn = input.value.trim();
+
+  if (psn.length < 3 || psn.length > 16) {
+    message.textContent = "PSN jméno musí mít 3–16 znaků.";
+    return;
+  }
+
+  message.textContent = "Ukládám...";
+
+  try {
+
+    const response = await fetch("/api/profile/update", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        psn_username: psn
+      })
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      message.textContent =
+        data.error || "Nepodařilo se uložit.";
+      return;
+    }
+
+    message.textContent = "PSN jméno uloženo ✓";
+
+  } catch (error) {
+
+    console.error(error);
+    message.textContent = "Chyba při ukládání.";
+
+  }
+});
+
+
+/* NAČTENÍ PROFILU */
 loadProfile();
 </script>
 
