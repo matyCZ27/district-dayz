@@ -80,7 +80,22 @@ export async function onRequest(context) {
   }
 
   const user = await userResponse.json();
-
+// Uložení / aktualizace hráče v D1
+await context.env.DB.prepare(`
+  INSERT INTO players (
+    discord_id,
+    discord_username
+  )
+  VALUES (?, ?)
+  ON CONFLICT(discord_id)
+  DO UPDATE SET
+    discord_username = excluded.discord_username
+`)
+.bind(
+  user.id,
+  user.global_name || user.username
+)
+.run();
   const avatarUrl = user.avatar
     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256`
     : `https://cdn.discordapp.com/embed/avatars/0.png`;
